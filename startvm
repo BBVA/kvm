@@ -7,24 +7,33 @@ if [ "$1" = "bash" ]; then
   exec bash
 fi
 
-KVM_BLK_OPTS="-smbios type=1,product=VSC \
+: ${KVM_BLK_OPTS:="\
+  -drive file=/image/image.qcow2,if=none,id=drive-ide0-0-0,format=qcow2,cache=writethrough \
+  -device ide-hd,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-1,bootindex=1 \
+  "}
+
+: ${KVM_OPTS:="-smbios type=1,product=VSC \
   -machine rhel6.0.0,accel=kvm,usb=off \
   -nographic \
   -nodefaults \
   -no-acpi \
-  -drive file=/image/image.qcow2,if=none,id=drive-ide0-0-0,format=qcow2,cache=writethrough \
-  -chardev pty,id=charserial0 \
-  -device ide-hd,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-1,bootindex=1 \
-  -device isa-serial,chardev=charserial0,id=serial0 \
   -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x2 \
   -realtime mlock=off \
   -msg timestamp=on \
-  -serial telnet::4555,server,nowait"
+  -chardev pty,id=charserial0 \
+  -device isa-serial,chardev=charserial0,id=serial0
+  -serial telnet::4555,server,nowait
+  "}
 
 # Pass Docker command args to kvm
 # KVM_ARGS="$@"
 
-KVM_ARGS=${KVM_ARGS:-"-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
-# echo $@
-exec $LAUNCHER $KVM_BLK_OPTS $KVM_ARGS
+: ${KVM_ARGS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
 
+: ${KVM_NET_OPTS:="\
+  -netdev bridge,br=\$BRIDGE_IFACE,id=net0 \
+  -device virtio-net-pci,netdev=net0,mac=\$MAC \
+  "}
+
+# echo $@
+exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_ARGS

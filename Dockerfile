@@ -9,12 +9,11 @@ RUN yum clean all \
 
 ENV LAUNCHER "/usr/libexec/qemu-kvm"
 
-# COPY startvm /var/lib/bbva/startvm
-# RUN chmod u+x /var/lib/bbva/startvm
+COPY startvm /usr/local/sbin/startvm
+RUN chmod u+x /usr/local/sbin/startvm
 
-VOLUME /var/lib/bbva
 VOLUME /image
 EXPOSE 4555
 
-ENTRYPOINT ["/var/lib/bbva/startvm"]
+ENTRYPOINT ["/usr/local/sbin/startvm"]
 
