@@ -1,5 +1,7 @@
 #!/bin/bash
 
+QEMU_CONF_DIR='/etc/qemu-kvm/'
+
 set -x
 
 # For debugging
@@ -30,10 +32,14 @@ fi
 
 : ${KVM_ARGS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
 
-: ${KVM_NET_OPTS:="\
-  -netdev bridge,br=\$BRIDGE_IFACE,id=net0 \
-  -device virtio-net-pci,netdev=net0,mac=\$MAC \
-  "}
+# If BRIFACES is defined, attach them to the VM as tap devices
+if ! [ -z "${BRIFACES}" ]; then
+  i=0
+  for iface in $BRIFACES; do
+    echo 'allow '$iface >> $QEMU_CONF_DIR/bridge.conf
+    KVM_NET_OPTS="$KVM_NET_OPTS -netdev bridge,br=$iface,id=net$i -device virtio-net-pci,netdev=net$i "
+    let i++
+  done
+fi
 
-# echo $@
-exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_ARGS
+exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_ARGS $KVM_NET_OPTS
