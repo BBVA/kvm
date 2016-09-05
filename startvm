@@ -42,20 +42,24 @@ bridge_ifaces=$(brctl show | tail -n +2 | sed '/^[\s\t]/d' | awk '{print $1}')
 set -- $bridge_ifaces
 
 # If BRIFACES is defined, attach them to the VM as tap devices
+#
 if ! [ -z "${BRIFACES}" ]; then
   i=0
   for iface in $BRIFACES; do
     if ! [ -z "${bridge_ifaces}" ]; then
-      if [ -z $(containsElement $iface $bridge_ifaces) ]; then
+      if ! $(containsElement $iface $bridge_ifaces); then
         brctl addbr $iface
-        brctl addif $iface eth0
+        [[ $i -eq 0 ]] && brctl addif $iface eth0
+        ip link set dev $iface up
       fi
     else
       brctl addbr $iface
-      brctl addif $iface eth0
+      [[ $i -eq 0 ]] && brctl addif $iface eth0
     fi
+
     echo 'allow '$iface >> $QEMU_CONF_DIR/bridge.conf
     KVM_NET_OPTS="$KVM_NET_OPTS -netdev bridge,br=$iface,id=net$i -device virtio-net-pci,netdev=net$i"
+
     let i++
   done
 fi
