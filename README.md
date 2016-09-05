@@ -2,11 +2,12 @@
 
 ## Build instructions:
 
-* `docker build -t docker-kvm:0.1`
+* `docker build -t docker-kvm:0.2 .`
 
 ## Notes
 
-* Privileged mode and net=host is needed in order for the container to access to KVM layer.
+* Privileged mode is needed in order for the container to access to KVM layer.
+* Net=host mode in container is needed to use docker host networking
 
 ## Authors
 * BBVA Innotech - Fernando Alvarez (@methadata)
