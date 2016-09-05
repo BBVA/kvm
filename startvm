@@ -4,6 +4,12 @@ QEMU_CONF_DIR='/etc/qemu-kvm/'
 
 set -x
 
+containsElement () {
+  local e
+  for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
+  return 1
+}
+
 # For debugging
 if [ "$1" = "bash" ]; then
   exec bash
@@ -32,12 +38,24 @@ fi
 
 : ${KVM_ARGS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
 
+bridge_ifaces=$(brctl show | tail -n +2 | sed '/^[\s\t]/d' | awk '{print $1}')
+set -- $bridge_ifaces
+
 # If BRIFACES is defined, attach them to the VM as tap devices
 if ! [ -z "${BRIFACES}" ]; then
   i=0
   for iface in $BRIFACES; do
+    if ! [ -z "${bridge_ifaces}" ]; then
+      if [ -z $(containsElement $iface $bridge_ifaces) ]; then
+        brctl addbr $iface
+        brctl addif $iface eth0
+      fi
+    else
+      brctl addbr $iface
+      brctl addif $iface eth0
+    fi
     echo 'allow '$iface >> $QEMU_CONF_DIR/bridge.conf
-    KVM_NET_OPTS="$KVM_NET_OPTS -netdev bridge,br=$iface,id=net$i -device virtio-net-pci,netdev=net$i "
+    KVM_NET_OPTS="$KVM_NET_OPTS -netdev bridge,br=$iface,id=net$i -device virtio-net-pci,netdev=net$i"
     let i++
   done
 fi
