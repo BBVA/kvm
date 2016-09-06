@@ -4,7 +4,7 @@ ENV container docker
 
 RUN yum clean all \
     && yum update -y \
-    && yum install -y qemu-kvm bridge-utils iproute \
+    && yum install -y qemu-kvm bridge-utils iproute telnet \
     && yum clean all
 
 ENV LAUNCHER "/usr/libexec/qemu-kvm"
