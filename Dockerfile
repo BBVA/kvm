@@ -7,8 +7,6 @@ RUN yum clean all \
     && yum install -y qemu-kvm bridge-utils iproute telnet \
     && yum clean all
 
-ENV LAUNCHER "/usr/libexec/qemu-kvm"
-
 COPY startvm /usr/local/sbin/startvm
 RUN chmod u+x /usr/local/sbin/startvm
 

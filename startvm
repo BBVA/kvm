@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# This entrypoint for KVM container configures and attaches network bridges to
+# the VM and starts KVM with the selected options.
+
+# See Dockerfile reference and README.md for further info.
+
+# If no arguments, the VM will lauch with 4 cores and 1GB of memory
+
 : ${LAUNCHER:='/usr/libexec/qemu-kvm'}
 : ${QEMU_CONF_DIR:='/etc/qemu-kvm/'}
 
@@ -52,7 +59,7 @@ configureNetwork () {
   done
 }
 
-# For debugging
+# Debugging mode
 if [ "$1" = "bash" ]; then
   exec bash
 fi
@@ -86,7 +93,7 @@ configureNetwork
   -device ide-hd,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-1,bootindex=1 \
   "}
 
-: ${KVM_OPTS:="-smbios type=1,product=VSC \
+: ${KVM_OPTS:="\
   -machine rhel6.0.0,accel=kvm,usb=off \
   -nographic \
   -nodefaults \
@@ -99,13 +106,8 @@ configureNetwork
   -serial telnet::4555,server,nowait
   "}
 
-# Pass Docker command args to kvm
-# KVM_ARGS="$@"
+: ${KVM_CPU_OPTS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
 
-: ${KVM_ARGS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
-
-
-# CHECK AUTO_ATTACH var
-# If AUTO_ATTACH=no check ATTACH_IFS
-
-exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_ARGS $KVM_NET_OPTS
+KVM_ARGS=$@
+echo "Launching $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS $KVM_ARGS"
+exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS $KVM_ARGS
