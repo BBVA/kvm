@@ -74,17 +74,13 @@ if [[ $AUTO_ATTACH -eq 1 ]]; then
   # Get all interfaces:
   local_ifaces=($(ip link show | grep state | grep -v LOOPBACK | awk '{print $2}' | tr -d : | sed 's/@.*$//'))
   local_bridges=($(brctl show | tail -n +2 | awk '{print $1}'))
-  echo "${local_ifaces[@]}"
   # Get non-bridge interfaces:
   for i in "${local_bridges[@]}"; do
     local_ifaces=(${local_ifaces[@]//*$i*})
-    echo "${local_ifaces[@]}"
   done
 else
   local_ifaces="$ATTACH_IFS"
 fi
-
-echo "IFS--""${local_ifaces[@]}"
 
 configureNetwork
 
