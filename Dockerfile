@@ -7,11 +7,11 @@ RUN yum clean all \
     && yum install -y qemu-kvm bridge-utils iproute telnet \
     && yum clean all
 
-COPY startvm /usr/local/sbin/startvm
-RUN chmod u+x /usr/local/sbin/startvm
+COPY startvm /usr/local/bin/startvm
+RUN chmod u+x /usr/local/bin/startvm
 
 VOLUME /image
 EXPOSE 4555
 
-ENTRYPOINT ["/usr/local/sbin/startvm"]
+ENTRYPOINT ["/usr/local/bin/startvm"]
 

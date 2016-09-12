@@ -47,7 +47,8 @@ setBridge () {
 configureNetwork () {
   local i=0
 
-  for iface in "${local_ifaces[@]}"; do
+  for iface in "${local_ifaces[@]}"
+  do
     bri_iface="kvmbri$i"
 
     setBridge "$bri_iface" "$iface"
@@ -75,7 +76,8 @@ if [[ $AUTO_ATTACH -eq 1 ]]; then
   local_ifaces=($(ip link show | grep state | grep -v LOOPBACK | awk '{print $2}' | tr -d : | sed 's/@.*$//'))
   local_bridges=($(brctl show | tail -n +2 | awk '{print $1}'))
   # Get non-bridge interfaces:
-  for i in "${local_bridges[@]}"; do
+  for i in "${local_bridges[@]}"
+  do
     local_ifaces=(${local_ifaces[@]//*$i*})
   done
 else
@@ -98,12 +100,12 @@ configureNetwork
   -realtime mlock=off \
   -msg timestamp=on \
   -chardev pty,id=charserial0 \
-  -device isa-serial,chardev=charserial0,id=serial0
-  -serial telnet::4555,server,nowait
+  -device isa-serial,chardev=charserial0,id=serial0 \
+  -serial telnet::4555,server,nowait \
   "}
 
 : ${KVM_CPU_OPTS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
 
-KVM_ARGS=$@
-echo "Launching $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS $KVM_ARGS"
-exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS $KVM_ARGS
+# KVM_ARGS="$@"
+echo "Launching $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS $KVM_ARGS $@"
+exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS "$@"
