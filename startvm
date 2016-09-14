@@ -172,7 +172,6 @@ dnsmasq
 
 : ${KVM_OPTS:="\
   -machine rhel6.0.0,accel=kvm,usb=off \
-  -nographic \
   -nodefaults \
   -no-acpi \
   -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x2 \
