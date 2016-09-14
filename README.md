@@ -97,6 +97,7 @@ $ docker run                                            \
 
 * Review and document $KVM_ARGS
 * Add TFTP capabilities to dnsmasq
+* Add VNC capability for video console (using noVNC or socat to a unix socket provided by KVM)
 
 ## Authors
 * BBVA Innotech - Fernando Alvarez (@methadata)
