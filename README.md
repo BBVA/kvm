@@ -16,7 +16,7 @@ It uses QEMU/KVM to launch the VM directly with PID 1, thus it doesn't depend on
   * If `AUTO_ATTACH` is set to `no`, a list of interfaces have to be declared in the `ATTACH_IFACES` variable. This is useful when launching the container with `net=host` flag, and only a subset of network interfaces need to be attached to the container.
 * The VM image needs to be located in `/image/image.qcow2`
 * Any additional parameter for QEMU/KVM can be specified as CMD argument when launching the container.
-* When launching the VM, its serial port is accesible through telnet to port 4555
+* When launching the VM, its serial port is accesible through `docker attach`
 
 
 ```
@@ -36,7 +36,7 @@ $ docker run                                            \
 Before running the container, it is needed to create the networks first:
 ```
 $ docker network create --driver=bridge network1 --subnet=172.19.0.0/24
-$ docker network create --driver=bridge network2 --subnet=172.19.1.0/24
+$ docker network create --driver=bridge network2 --subnet=172.19.2.0/24
 ```
 
 Then, create the container and attach the network prior to start the container:
@@ -96,6 +96,7 @@ $ docker run                                            \
 ## ToDo
 
 * Review and document $KVM_ARGS
+* Add TFTP capabilities to dnsmasq
 
 ## Authors
 * BBVA Innotech - Fernando Alvarez (@methadata)
