@@ -10,6 +10,7 @@
 : ${LAUNCHER:='/usr/libexec/qemu-kvm'}
 : ${QEMU_CONF_DIR:='/etc/qemu-kvm'}
 : ${DNSMASQ_CONF_DIR:='/etc/dnsmasq.d'}
+: ${DNSMASQ:='/usr/sbin/dnsmasq'}
 : ${ENABLE_DHCP:='Y'}
 
 # set -x
@@ -168,7 +169,8 @@ fi
 configureNetworks
 
 case "$ENABLE_DHCP" in
-  [Yy1]* ) dnsmasq $DNSMASQ_OPTS;;
+  [Yy1]* ) echo "Lauching dnsmasq $DNSMASQ_OPTS"
+           $DNSMASQ $DNSMASQ_OPTS;;
   [Nn0]* ) ;;
   *      ) echo "ERROR: ENABLE_DHCP incorrect or not defined. It must be one of [YyNn]"; exit 1;;
 esac
