@@ -12,6 +12,7 @@
 : ${DNSMASQ_CONF_DIR:='/etc/dnsmasq.d'}
 : ${DNSMASQ:='/usr/sbin/dnsmasq'}
 : ${ENABLE_DHCP:='Y'}
+: ${DNS_SERVERS:='8.8.8.8'}
 
 # set -x
 
@@ -166,7 +167,15 @@ else
   local_ifaces="$ATTACH_IFS"
 fi
 
+DEFAULT_ROUTE=$(ip route | grep default | awk '{print $3}')
+
 configureNetworks
+
+DNSMASQ_OPTS="                                      \
+  --dhcp-option=option:dns-server,$DNS_SERVERS      \
+  --dhcp-option=option:router,$DEFAULT_ROUTE        \
+  --dhcp-option=option:domain-name,$(hostname -d)   \
+  "
 
 case "$ENABLE_DHCP" in
   [Yy1]* ) echo "Lauching dnsmasq $DNSMASQ_OPTS"
