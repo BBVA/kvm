@@ -127,9 +127,12 @@ configureNetworks () {
     setBridge "$bri_iface" "$iface"
 
     # dnsmasq configuration:
-    echo dhcp-range=$IP,$IP >> "$DNSMASQ_CONF_DIR"/"$iface".conf
-    echo dhcp-host=$MAC,,$IP,infinite >> "$DNSMASQ_CONF_DIR"/"$iface".conf
-    echo dhcp-option=option:netmask,$(cidr2mask $CIDR) >> "$DNSMASQ_CONF_DIR"/"$iface".conf
+    cat << EOF > "$DNSMASQ_CONF_DIR"/"$iface".conf
+dhcp-range=$IP,$IP
+dhcp-host=$MAC,,$IP,infinite
+dhcp-option=option:netmask,$(cidr2mask $CIDR)
+EOF
+
     # kvm configuration:
     echo allow $bri_iface >> $QEMU_CONF_DIR/bridge.conf
     KVM_NET_OPTS="$KVM_NET_OPTS -netdev bridge,br=$bri_iface,id=net$i -device virtio-net-pci,netdev=net$i,mac=$MAC"
@@ -143,10 +146,10 @@ if [ "$1" = "bash" ]; then
   exec bash
 fi
 
-case $AUTO_ATTACH in
-    [Yy]* ) AUTO_ATTACH=1;;
-    [Nn]* ) AUTO_ATTACH=0;;
-    * ) echo "ERROR: AUTO_ATTACH variable not defined."; exit 1;;
+case "$AUTO_ATTACH" in
+  [Yy1]* ) AUTO_ATTACH=1;;
+  [Nn0]* ) AUTO_ATTACH=0;;
+  *      ) echo "ERROR: AUTO_ATTACH incorrect or not defined. It must be one of YyNn"; exit 1;;
 esac
 
 if [[ $AUTO_ATTACH -eq 1 ]]; then
