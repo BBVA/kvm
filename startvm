@@ -156,7 +156,7 @@ esac
 
 if [[ $AUTO_ATTACH -eq 1 ]]; then
   # Get all interfaces:
-  local_ifaces=($(ip link show | grep state | grep -v LOOPBACK | awk '{print $2}' | tr -d : | sed 's/@.*$//'))
+  local_ifaces=($(ip link show | grep -v noop | grep state | grep -v LOOPBACK | awk '{print $2}' | tr -d : | sed 's/@.*$//'))
   local_bridges=($(brctl show | tail -n +2 | awk '{print $1}'))
   # Get non-bridge interfaces:
   for i in "${local_bridges[@]}"
