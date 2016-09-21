@@ -2,12 +2,13 @@
 
 Generic container for launching a Virtual Machine inside a Docker container.
 
-It uses QEMU/KVM to launch the VM directly with PID 1, thus it doesn't depend on libvirt package.
+Features:
+- It uses QEMU/KVM to launch the VM directly with PID 1.
+- Non libvirt dependant.
+- It attaches to the VM as many NICs as the docker container has.
+- The VM gets the original container IPs. The container gets non-conflicting IPs
 
-## Build instructions:
-
-* `docker build -t kvm:0.3 .`
-* `docker tag kvm:0.3 kvm:latest`
+Partially based on [RancherVM](https://github.com/rancher/vm) project.
 
 ## Running:
 
@@ -28,7 +29,7 @@ $ docker run                                            \
       -v /lib/modules:/lib/modules                      \
       -v /var/run:/var/run                              \
       -e AUTO_ATTACH=yes                                \
-      kvm:latest
+      bbvainnotech/kvm:latest
 ```
 
 ### Using more than one interface for the container (and the VM)
@@ -50,7 +51,7 @@ $ docker create                                         \
       -v /lib/modules:/lib/modules                      \
       -v /var/run:/var/run                              \
       -e AUTO_ATTACH=yes                                \
-      kvm:latest
+      bbvainnotech/kvm:latest
 
 $ docker network connect network2 container_name
 $ docker start container_name
@@ -68,12 +69,12 @@ $ docker run                                            \
       -v /lib/modules:/lib/modules                      \
       -v /var/run:/var/run                              \
       -e AUTO_ATTACH=yes                                \
-      kvm:latest
+      bbvainnotech/kvm:latest
 ```
 
 ### Debug mode
 
-Passing `bash` as argument to the container will launch a bash shell:
+Passing `bash` keyword as argument to the container will launch a bash shell:
 
 ```
 $ docker run                                            \
@@ -86,7 +87,7 @@ $ docker run                                            \
       -v /var/run:/var/run                              \
       -e AUTO_ATTACH=yes                                \
       kvm:latest                                        \
-      bash
+      bbvainnotech/kvm:latest
 ```
 
 ## Notes
@@ -94,9 +95,8 @@ $ docker run                                            \
 * Privileged mode is needed in order for the container to access to KVM layer.
 
 ## ToDo
-
+* Migrate to a lightweight container base
 * Review and document $KVM_ARGS
-* Add TFTP capabilities to dnsmasq
 * Add VNC capability for video console (using noVNC or socat to a unix socket provided by KVM)
 
 ## Authors
