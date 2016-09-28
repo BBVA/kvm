@@ -98,6 +98,7 @@ $ docker run                                            \
 * Migrate to a lightweight container base
 * Review and document $KVM_ARGS
 * Add VNC capability for video console (using noVNC or socat to a unix socket provided by KVM)
+* Build dnsmasq options directly and do not use config files
 
 ## Authors
 * BBVA Innotech - Fernando Alvarez (@methadata)

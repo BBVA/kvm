@@ -183,15 +183,14 @@ DEFAULT_ROUTE=$(ip route | grep default | awk '{print $3}')
 
 configureNetworks
 
-DNSMASQ_OPTS="                                      \
-  --dhcp-option=option:dns-server,$DNS_SERVERS      \
-  --dhcp-option=option:router,$DEFAULT_ROUTE        \
-  --dhcp-option=option:domain-name,$(hostname -d)   \
-  "
-
 case "$ENABLE_DHCP" in
-  [Yy1]* ) echo "Lauching dnsmasq $DNSMASQ_OPTS"
-           $DNSMASQ $DNSMASQ_OPTS;;
+  [Yy1]* )  DNSMASQ_OPTS="$DNSMASQ_OPTS                       \
+            --dhcp-option=option:dns-server,$DNS_SERVERS      \
+            --dhcp-option=option:router,$DEFAULT_ROUTE        \
+            "
+            [[ -z $(hostname -d) ]] || DNSMASQ_OPTS="$DNSMASQ_OPTS --dhcp-option=option:domain-name,$(hostname -d)"
+            echo "Lauching dnsmasq $DNSMASQ_OPTS"
+            $DNSMASQ $DNSMASQ_OPTS;;
   [Nn0]* ) ;;
   *      ) echo "ERROR: ENABLE_DHCP incorrect or not defined. It must be one of [YyNn]"; exit 1;;
 esac
