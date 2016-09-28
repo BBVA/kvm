@@ -7,6 +7,7 @@ Features:
 - Non libvirt dependant.
 - It attaches to the VM as many NICs as the docker container has.
 - The VM gets the original container IPs. The container gets non-conflicting IPs
+- Uses macvtap tun devices for best network throughput
 
 Partially based on [RancherVM](https://github.com/rancher/vm) project.
 
