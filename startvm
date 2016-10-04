@@ -218,7 +218,7 @@ if [[ $AUTO_ATTACH -eq 1 ]]; then
     local_ifaces=(${local_ifaces[@]//*$i*})
   done
 else
-  local_ifaces="$ATTACH_IFS"
+  local_ifaces="$ATTACH_IFACES"
 fi
 
 DEFAULT_ROUTE=$(ip route | grep default | awk '{print $3}')
