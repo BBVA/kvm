@@ -87,9 +87,16 @@ $ docker run                                            \
       -v /lib/modules:/lib/modules                      \
       -v /var/run:/var/run                              \
       -e AUTO_ATTACH=yes                                \
-      kvm:latest                                        \
       bbvainnotech/kvm:latest
 ```
+
+## Environment variables
+
+### SELECTED_NETWORK
+If the container has more than one IP configured in a given interface, the user can select which one to use. The `SELECTED_NETWORK` environment variable is used to select that IP. This env variable must be in the form IP/MASK (e.g. 1.2.3.4/24).
+If this env variable is not set, the IP to be given to the VM is the first in the list for that interface (default behaviour).
+
+This usecase is found when working with Kubernetes: Kubernetes assigns two IP addresses to the docker eth0 interface.
 
 ## Notes
 
