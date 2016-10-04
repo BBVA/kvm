@@ -112,6 +112,7 @@ configureNetworks () {
   local i=0
 
   local GATEWAY=$(ip r | grep default | awk '{print $3}')
+  local IP
 
   for iface in "${local_ifaces[@]}"; do
 
@@ -123,7 +124,7 @@ configureNetworks () {
     # If this env variable is not set, the IP to be given to the VM is
     # the first in the list for that interface (default behaviour).
 
-    local IPs=$(ip address show dev $iface | grep inet | awk '/inet / { print $2 }' | cut -f1 -d/)
+    IPs=$(ip address show dev $iface | grep inet | awk '/inet / { print $2 }' | cut -f1 -d/)
     IPs=($IPs)
 
     if ! [[ -z "$SELECTED_NETWORK" ]]; then
@@ -137,8 +138,8 @@ configureNetworks () {
       for configured_ip in "${IPs[@]}"; do
         local configured_ip=$(atoi $configured_ip)
         if [[ $configured_ip -gt $given_network && $configured_ip -lt $given_broadcast ]]; then
-          IP=$configured_ip
-          echo "INFO: SELECTED_NETWORK ($SELECTED_NETWORK) found with ip $(itoa $IP) in $iface interface."
+          IP=$(itoa $configured_ip)
+          echo "INFO: SELECTED_NETWORK ($SELECTED_NETWORK) found with ip $IP in $iface interface."
         fi
       done
       [[ -z "$IP" ]] && echo "WARNING: SELECTED_NETWORK ($SELECTED_NETWORK) not found in $iface interface."
