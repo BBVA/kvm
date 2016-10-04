@@ -27,7 +27,7 @@
   -msg timestamp=on \
   -chardev pty,id=charserial0 \
   -device isa-serial,chardev=charserial0,id=serial0 \
-  -serial stdio
+  -serial stdio \
   "}
   # -serial telnet::4555,server,nowait \
 
