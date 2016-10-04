@@ -98,6 +98,11 @@ If this env variable is not set, the IP to be given to the VM is the first in th
 
 This usecase is found when working with Kubernetes: Kubernetes assigns two IP addresses to the docker eth0 interface.
 
+### AUTO_ATTACH
+When this env variable is set to 'yes', the entrypoint will scan all the vNICs present in the Docker container, and it will configure the hosted VM to get as many vNICs as the host container.
+
+If this variable is set to "no", only the interface name specified in the env variable $ATTACH_IFS will be connected to the guest VM.
+
 ## Notes
 
 * Privileged mode is needed in order for the container to access to KVM layer.
@@ -107,6 +112,7 @@ This usecase is found when working with Kubernetes: Kubernetes assigns two IP ad
 * Review and document $KVM_ARGS
 * Add VNC capability for video console (using noVNC or socat to a unix socket provided by KVM)
 * Build dnsmasq options directly and do not use config files
+* Try to use macvlan L3 device to connect host and guest machines for dnsmasq service
 
 ## Authors
 * BBVA Innotech - Fernando Alvarez (@methadata)
