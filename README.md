@@ -103,15 +103,26 @@ When this env variable is set to 'yes', the entrypoint will scan all the vNICs p
 
 If this variable is set to "no", only the interface name specified in the env variable $ATTACH_IFS will be connected to the guest VM.
 
-## Notes
+## Notes / Troubleshooting
 
 * Privileged mode is needed in order for the container to access to KVM layer.
+* If you get the following error from KVM:
+  ```
+  qemu-kvm: -netdev tap,id=net0,vhost=on,fd=3: vhost-net requested but could not be initialized
+  qemu-kvm: -netdev tap,id=net0,vhost=on,fd=3: Device 'tap' could not be initialized
+  ```
+
+  you will need to load the `vhost-net` kernel module in your dockerhost (as root) prior to launch this container:
+
+  ```
+  # modprobe vhost-net
+  ```
+
+  This is probed to be needed when using RancherOS.
 
 ## ToDo
 * Migrate to a lightweight container base
-* Review and document $KVM_ARGS
 * Add VNC capability for video console (using noVNC or socat to a unix socket provided by KVM)
-* Build dnsmasq options directly and do not use config files
 * Try to use macvlan L3 device to connect host and guest machines for dnsmasq service
 
 ## Authors
