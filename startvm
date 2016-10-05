@@ -148,8 +148,8 @@ configureNetworks () {
     fi
 
     local CIDR=$(ip address show dev $iface | awk "/inet $IP/ { print \$2 }" | cut -f2 -d/)
-    local vtapdev="macvtap$i"
-    local vlandev="macvlan$i"
+    local vtapdev="kvm-macvtap$i"
+    local vlandev="kvm-macvlan$i"
 
     # macvtap device creation for the VM
     ip link add link $iface name $vtapdev type macvtap mode bridge
