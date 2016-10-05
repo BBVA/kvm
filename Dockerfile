@@ -1,11 +1,14 @@
-FROM centos:latest
+FROM alpine:latest
 MAINTAINER BBVA Innovation <eurocloud-oneteam.group@bbva.com>
 ENV container docker
 
-RUN yum clean all \
-    && yum update -y \
-    && yum install -y qemu-kvm bridge-utils iproute dnsmasq \
-    && yum clean all
+RUN apk -U --no-cache add       \
+      qemu                      \
+      qemu-system-x86_64        \
+      bridge-utils              \
+      bash                      \
+      dnsmasq                   \
+    && rm -rf /var/cache/apk/*
 
 COPY startvm /usr/local/bin/startvm
 RUN chmod u+x /usr/local/bin/startvm
