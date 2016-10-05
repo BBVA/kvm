@@ -208,13 +208,13 @@ fi
 case "$AUTO_ATTACH" in
   [Yy1]* ) AUTO_ATTACH=1;;
   [Nn0]* ) AUTO_ATTACH=0;;
-  *      ) echo "ERROR: AUTO_ATTACH incorrect or not defined. It must be one of YyNn"; exit 1;;
+  *      ) echo "ERROR: AUTO_ATTACH incorrect or undefined. It must be one of YyNn"; exit 1;;
 esac
 
 case "$ENABLE_DHCP" in
   [Yy1]* ) ENABLE_DHCP=1;;
   [Nn0]* ) ENABLE_DHCP=0;;
-  *      ) echo "ERROR: ENABLE_DHCP incorrect or not defined. It must be one of [YyNn]"; exit 1;;
+  *      ) echo "ERROR: ENABLE_DHCP incorrect or undefined. It must be one of [YyNn]"; exit 1;;
 esac
 
 if [[ $AUTO_ATTACH -eq 1 ]]; then
