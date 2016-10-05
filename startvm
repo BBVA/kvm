@@ -173,7 +173,7 @@ configureNetworks () {
 
     # dnsmasq configuration:
     if [[ "$ENABLE_DHCP" == 1 ]]; then
-      echo "INFO: DHCP configured to serve IP $IP/$CIDR via $vtapdev"
+      echo "INFO: DHCP configured to serve IP $IP/$CIDR via $vtapdev (attached to $iface)"
       DNSMASQ_OPTS="$DNSMASQ_OPTS                       \
         --dhcp-range=$IP,$IP                            \
         --dhcp-host=$MAC,,$IP,infinite                  \
@@ -200,7 +200,6 @@ if [ "$1" = "bash" ]; then
   export DNS_SERVERS=$DNS_SERVERS
   export KVM_BLK_OPTS=$KVM_BLK_OPTS
   export KVM_OPTS="$KVM_OPTS -nographic"
-  export AUTO_ATTACH=y
   alias launcher="$LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_NET_OPTS"
   exec bash
 fi
@@ -227,7 +226,7 @@ if [[ $AUTO_ATTACH -eq 1 ]]; then
     local_ifaces=(${local_ifaces[@]//*$i*})
   done
 else
-  local_ifaces="$ATTACH_IFACES"
+  local_ifaces=($ATTACH_IFACES)
 fi
 
 DEFAULT_ROUTE=$(ip route | grep default | awk '{print $3}')

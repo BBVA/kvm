@@ -99,9 +99,11 @@ If this env variable is not set, the IP to be given to the VM is the first in th
 This usecase is found when working with Kubernetes: Kubernetes assigns two IP addresses to the docker eth0 interface.
 
 ### AUTO_ATTACH
-When this env variable is set to 'yes', the entrypoint will scan all the vNICs present in the Docker container, and it will configure the hosted VM to get as many vNICs as the host container.
+When this env variable is set to `yes`, the entrypoint will scan all the vNICs present in the Docker container, and it will configure the hosted VM to get as many vNICs as the host container.
 
-If this variable is set to "no", only the interface name specified in the env variable $ATTACH_IFS will be connected to the guest VM.
+If this variable is set to `no`, only the interface names specified in the env variable `$ATTACH_IFACES` will be connected to the guest VM. Interfaces shall be separated by spaces (eg. `ATTACH_IFACES='eth0 eth2'`).
+
+If `AUTO_ATTACH` is set to `no` and no interfaces are defined, the VM will start with no NICs (and thus no vtap devices connected to container interfaces).
 
 ## Notes / Troubleshooting
 
