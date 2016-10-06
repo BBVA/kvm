@@ -11,6 +11,7 @@
 : ${DNSMASQ_CONF_DIR:='/etc/dnsmasq.d'}
 : ${DNSMASQ:='/usr/sbin/dnsmasq'}
 : ${ENABLE_DHCP:='Y'}
+: ${DISABLE_VGA:='N'}
 : ${DNS_SERVERS:='8.8.8.8,8.8.4.4'}
 
 : ${KVM_BLK_OPTS:="\
@@ -216,6 +217,18 @@ case "$ENABLE_DHCP" in
   *      ) echo "ERROR: ENABLE_DHCP incorrect or undefined. It must be one of [YyNn]"; exit 1;;
 esac
 
+case "$DISABLE_VGA" in
+  [Yy1]* ) DISABLE_VGA=1;;
+  [Nn0]* ) DISABLE_VGA=0;;
+  *      ) echo "ERROR: DISABLE_VGA incorrect or undefined. It must be one of [YyNn]"; exit 1;;
+esac
+
+if [[ "$DISABLE_VGA" -eq 0 ]]; then
+  : ${KVM_VIDEO_OPTS:="-vga qxl -display none"}
+else
+  unset KVM_VIDEO_OPTS
+fi
+
 if [[ $AUTO_ATTACH -eq 1 ]]; then
   # Get all interfaces:
   local_ifaces=($(ip link show | grep -v noop | grep state | grep -v LOOPBACK | awk '{print $2}' | tr -d : | sed 's/@.*$//'))
@@ -246,5 +259,5 @@ fi
 # KVM_ARGS="$@"
 
 
-echo "INFO: Launching $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS $KVM_ARGS $@ $KVM_NET_OPTS"
-eval exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_CPU_OPTS "$@" $KVM_NET_OPTS
+echo "INFO: Launching $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_VIDEO_OPTS $KVM_CPU_OPTS $KVM_ARGS $@ $KVM_NET_OPTS"
+eval exec $LAUNCHER -enable-kvm $KVM_BLK_OPTS $KVM_OPTS $KVM_VIDEO_OPTS $KVM_CPU_OPTS "$@" $KVM_NET_OPTS
