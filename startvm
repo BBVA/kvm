@@ -22,7 +22,7 @@
   -machine rhel6.0.0,accel=kvm,usb=off \
   -nodefaults \
   -no-acpi \
-  -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x2 \
+  -device virtio-balloon-pci,id=balloon0 \
   -realtime mlock=off \
   -msg timestamp=on \
   -chardev pty,id=charserial0 \
