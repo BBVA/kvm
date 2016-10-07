@@ -27,8 +27,7 @@
   -realtime mlock=off \
   -msg timestamp=on \
   -chardev pty,id=charserial0 \
-  -device isa-serial,chardev=charserial0,id=serial0 \
-  -serial stdio \
+  -device isa-serial,chardev=charserial0,id=serial0
   "}
   # -serial telnet::4555,server,nowait \
 
@@ -226,7 +225,7 @@ esac
 if [[ "$DISABLE_VGA" -eq 0 ]]; then
   : ${KVM_VIDEO_OPTS:="-vga qxl -display none"}
 else
-  unset KVM_VIDEO_OPTS
+  : ${KVM_VIDEO_OPTS:="-serial stdio"}
 fi
 
 if [[ $AUTO_ATTACH -eq 1 ]]; then
