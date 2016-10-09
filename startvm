@@ -222,7 +222,7 @@ esac
 if [[ "$DISABLE_VGA" -eq 0 ]]; then
   : ${KVM_VIDEO_OPTS:="-vga qxl -display none"}
 else
-  unset KVM_VIDEO_OPTS
+  : ${KVM_VIDEO_OPTS:="-nographic"}
 fi
 
 if [[ $AUTO_ATTACH -eq 1 ]]; then
