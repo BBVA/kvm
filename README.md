@@ -3,11 +3,12 @@
 Generic container for launching a Virtual Machine inside a Docker container.
 
 Features:
-- It uses QEMU/KVM to launch the VM directly with PID 1.
 - Non libvirt dependant.
+- It uses QEMU/KVM to launch the VM directly with PID 1.
 - It attaches to the VM as many NICs as the docker container has.
-- The VM gets the original container IPs. The container gets non-conflicting IPs
-- Uses macvtap tun devices for best network throughput
+- The VM gets the original container IPs.
+- Uses macvtap tun devices for best network throughput.
+- Outputs serial console to stdio, thus visible using `docker logs`
 
 Partially based on [RancherVM](https://github.com/rancher/vm) project.
 
@@ -17,7 +18,7 @@ Partially based on [RancherVM](https://github.com/rancher/vm) project.
   * If `AUTO_ATTACH` is set to `yes`, then all the container interfaces are attached to the VM. This is the typical use case.
   * If `AUTO_ATTACH` is set to `no`, a list of interfaces have to be declared in the `ATTACH_IFACES` variable. This is useful when launching the container with `net=host` flag, and only a subset of network interfaces need to be attached to the container.
 * The VM image needs to be located in `/image/image` (no extension)
-* Any additional parameter for QEMU/KVM can be specified as CMD argument when launching the container.
+* Any additional parameters for QEMU/KVM can be specified as CMD argument when launching the container.
 * When launching the VM, its serial port is accesible through `docker attach`
 
 
@@ -27,15 +28,13 @@ $ docker run                                     \
       -td                                        \
       --privileged                               \
       -v /path_to/image_file.qcow2:/image/image  \
-      -v /lib/modules:/lib/modules               \
-      -v /var/run:/var/run                       \
       -e AUTO_ATTACH=yes                         \
       bbvainnotech/kvm:latest
 ```
 
 ### Using more than one interface for the container (and the VM)
 
-Before running the container, it is needed to create the networks first:
+Before running the container, it is needed to create the networks:
 ```
 $ docker network create --driver=bridge network1 --subnet=172.19.0.0/24
 $ docker network create --driver=bridge network2 --subnet=172.19.2.0/24
@@ -49,8 +48,6 @@ $ docker create                                 \
       --privileged                              \
       --network=network1                        \
       -v /path_to/image_file.qcow2:/image/image \
-      -v /lib/modules:/lib/modules              \
-      -v /var/run:/var/run                      \
       -e AUTO_ATTACH=yes                        \
       bbvainnotech/kvm:latest
 
@@ -67,8 +64,6 @@ $ docker run                                    \
       -td                                       \
       --privileged                              \
       -v /path_to/image_file.qcow2:/image/image \
-      -v /lib/modules:/lib/modules              \
-      -v /var/run:/var/run                      \
       -e AUTO_ATTACH=yes                        \
       bbvainnotech/kvm:latest
 ```
@@ -79,13 +74,9 @@ Passing `bash` keyword as argument to the container will launch a bash shell:
 
 ```
 $ docker run                                    \
-      --name container_name                     \
-      -net=host                                 \
-      -td                                       \
+      -ti                                       \
       --privileged                              \
       -v /path_to/image_file.qcow2:/image/image \
-      -v /lib/modules:/lib/modules              \
-      -v /var/run:/var/run                      \
       -e AUTO_ATTACH=yes                        \
       bbvainnotech/kvm:latest
 ```
@@ -121,11 +112,6 @@ If `AUTO_ATTACH` is set to `no` and no interfaces are defined, the VM will start
   ```
 
   This is probed to be needed when using RancherOS.
-
-## ToDo
-* Migrate to a lightweight container base
-* Add VNC capability for video console (using noVNC or socat to a unix socket provided by KVM)
-* Try to use macvlan L3 device to connect host and guest machines for dnsmasq service
 
 # License
 Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
