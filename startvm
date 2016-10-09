@@ -14,10 +14,7 @@
 : ${DISABLE_VGA:='N'}
 : ${DNS_SERVERS:='8.8.8.8,8.8.4.4'}
 
-: ${KVM_BLK_OPTS:="\
-  -drive file=/image/image.qcow2,if=none,id=drive-ide0-0-0,format=qcow2,cache=writethrough \
-  -device ide-hd,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-1,bootindex=1 \
-  "}
+: ${KVM_BLK_OPTS:="-drive if=virtio,file=/image/image"}
 
 : ${KVM_OPTS:="\
   -machine rhel6.0.0,accel=kvm,usb=off \
