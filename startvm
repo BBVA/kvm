@@ -247,6 +247,8 @@ DEFAULT_ROUTE=$(ip route | grep default | awk '{print $3}')
 configureNetworks
 
 if [[ "$ENABLE_DHCP" == 1 ]]; then
+  # Hack for guest VMs complaining about "bad udp checksums in 5 packets"
+  /usr/sbin/iptables -A POSTROUTING -t mangle -p udp --dport bootpc -j CHECKSUM --checksum-fill
   DNSMASQ_OPTS="$DNSMASQ_OPTS                     \
     --dhcp-option=option:dns-server,$DNS_SERVERS  \
     --dhcp-option=option:router,$DEFAULT_ROUTE    \
