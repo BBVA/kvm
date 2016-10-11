@@ -12,7 +12,6 @@
 : ${DNSMASQ:='/usr/sbin/dnsmasq'}
 : ${ENABLE_DHCP:='Y'}
 : ${DISABLE_VGA:='N'}
-: ${DNS_SERVERS:='8.8.8.8,8.8.4.4'}
 
 : ${KVM_BLK_OPTS:="-drive if=virtio,file=/image/image"}
 
@@ -245,9 +244,20 @@ configureNetworks
 if [[ "$ENABLE_DHCP" == 1 ]]; then
   # Hack for guest VMs complaining about "bad udp checksums in 5 packets"
   /usr/sbin/iptables -A POSTROUTING -t mangle -p udp --dport bootpc -j CHECKSUM --checksum-fill
-  DNSMASQ_OPTS="$DNSMASQ_OPTS                     \
-    --dhcp-option=option:dns-server,$DNS_SERVERS  \
-    --dhcp-option=option:router,$DEFAULT_ROUTE    \
+
+  # Build DNS options from container /etc/resolv.conf
+  nameservers=($(grep nameserver /etc/resolv.conf | sed 's/nameserver //'))
+  searchdomains=$(grep search /etc/resolv.conf | sed 's/search //' | sed 's/ /,/g')
+  domainname=$(echo $searchdomains | awk -F"," '{print $1}')
+
+  for nameserver in "${nameservers[@]}"; do
+    [[ -z $DNS_SERVERS ]] && DNS_SERVERS=$nameserver || DNS_SERVERS="$DNS_SERVERS,$nameserver"
+  done
+  DNSMASQ_OPTS="$DNSMASQ_OPTS                         \
+    --dhcp-option=option:dns-server,$DNS_SERVERS      \
+    --dhcp-option=option:router,$DEFAULT_ROUTE        \
+    --dhcp-option=option:domain-search,$searchdomains \
+    --dhcp-option=option:domain-name,$domainname      \
     "
   [[ -z $(hostname -d) ]] || DNSMASQ_OPTS="$DNSMASQ_OPTS --dhcp-option=option:domain-name,$(hostname -d)"
   echo "INFO: Lauching dnsmasq $DNSMASQ_OPTS"
