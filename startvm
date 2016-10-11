@@ -172,7 +172,7 @@ configureNetworks () {
       echo "INFO: DHCP configured to serve IP $IP/$CIDR via $vtapdev (attached to $iface)"
       DNSMASQ_OPTS="$DNSMASQ_OPTS                       \
         --dhcp-range=$IP,$IP                            \
-        --dhcp-host=$MAC,,$IP,infinite                  \
+        --dhcp-host=$MAC,,$IP,$(hostname -s),infinite   \
         --dhcp-option=option:netmask,$(cidr2mask $CIDR) \
         "
     fi
