@@ -107,7 +107,7 @@ It's specially useful the following options when debugging dnsmasq behaviour:
 
 ## Notes / Troubleshooting
 
-* Privileged mode is needed in order for the container to access to KVM layer.
+* Privileged mode (`--privileged`) is needed in order for KVM to access to macvtap devices [see issue #3](https://github.com/BBVA/kvm/issues/3) for further information.
 * If you get the following error from KVM:
 
   ```
