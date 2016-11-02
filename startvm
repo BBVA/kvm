@@ -44,7 +44,7 @@ containsElement () {
 genMAC () {
   hexchars="0123456789ABCDEF"
   end=$( for i in {1..8} ; do echo -n ${hexchars:$(( $RANDOM % 16 )):1} ; done | sed -e 's/\(..\)/:\1/g' )
-  echo "D3:4D$end"
+  echo "FE:05$end"
 }
 
 # atoi: Returns the integer representation of an IP arg, passed in ascii
@@ -137,6 +137,7 @@ configureNetworks () {
 
     IPs=$(ip address show dev $iface | grep inet | awk '/inet / { print $2 }' | cut -f1 -d/)
     IPs=($IPs)
+    MAC=$(ip link show $iface | awk '/ether/ { print $2 }')
 
     if ! [[ -z "$SELECTED_NETWORK" ]]; then
       local given_ip given_mask
@@ -163,14 +164,20 @@ configureNetworks () {
     #generate random device names for new network devices
     read vtapdev vlandev < <(generateDeviceNames)
 
+    # use container MAC address ($MAC) for tap device
+    # and generate a new one for the local interface
+    ip link set $iface down
+    ip link set $iface address $(genMAC)
+    ip link set $iface up
+
     # macvtap device creation for the VM
     ip link add link $iface name $vtapdev type macvtap mode bridge
+    ip link set $vtapdev address "$MAC"
     ip link set $vtapdev up
-    # macvlan device creation for the host
+
+    # create a macvlan device for the host
     ip link add link $iface name $vlandev type macvlan mode bridge
     ip link set $vlandev up
-
-    local MAC=$(cat /sys/class/net/$vtapdev/address)
 
     # get a new IP for the guest machine in a broader network broadcast domain
     if ! [[ -z $IP ]]; then
