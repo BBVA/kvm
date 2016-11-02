@@ -13,4 +13,3 @@ RUN chmod u+x /usr/local/bin/startvm
 VOLUME /image
 
 ENTRYPOINT ["/usr/local/bin/startvm"]
-CMD []

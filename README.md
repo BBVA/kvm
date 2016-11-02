@@ -96,21 +96,30 @@ If this variable is set to `no`, only the interface names specified in the env v
 
 If `AUTO_ATTACH` is set to `no` and no interfaces are defined, the VM will start with no NICs (and thus no vtap devices connected to container interfaces).
 
+### DNSMASQ_OPTS
+This var controls the invocation parameters for `dnsmasq` daemon, used to give IP addresses to the VM. See [dnsmasq's man page](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for info about available options.
+
+It's specially useful the following options when debugging dnsmasq behaviour:
+
+```
+--log-facility=/var/log/dnsmasq.log --log-dhcp
+```
+
 ## Notes / Troubleshooting
 
 * Privileged mode is needed in order for the container to access to KVM layer.
 * If you get the following error from KVM:
+
   ```
   qemu-kvm: -netdev tap,id=net0,vhost=on,fd=3: vhost-net requested but could not be initialized
   qemu-kvm: -netdev tap,id=net0,vhost=on,fd=3: Device 'tap' could not be initialized
-  ```
 
+  ```
   you will need to load the `vhost-net` kernel module in your dockerhost (as root) prior to launch this container:
 
   ```
   # modprobe vhost-net
   ```
-
   This is probed to be needed when using RancherOS.
 
 # License
