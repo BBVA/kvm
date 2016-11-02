@@ -31,17 +31,20 @@
 
 # set -x
 
+# ContainsElement: checks if first parameter is among the array given as second parameter
+# returns 0 if the element is found in the list and 1 if not
+# usage: containsElement $item $list
 containsElement () {
   local e
   for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
   return 1
 }
 
-# Generate random new MAC address
+# Generate random MAC address
 genMAC () {
   hexchars="0123456789ABCDEF"
   end=$( for i in {1..8} ; do echo -n ${hexchars:$(( $RANDOM % 16 )):1} ; done | sed -e 's/\(..\)/:\1/g' )
-  echo "06:FE$end"
+  echo "D3:4D$end"
 }
 
 # atoi: Returns the integer representation of an IP arg, passed in ascii
@@ -102,6 +105,18 @@ getNonConflictingIP () {
     echo $newIP $newCIDR
 }
 
+# generates new names for macvlan
+generateDeviceNames () {
+  local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
+  local nicID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1)
+
+  # check if the device already exists and regenerate the name if so
+  while containsElement "macvtap$nicID" "${macv_interfaces[@]}"; do nicID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1); done
+
+  echo -n "macvtap$nicID "
+  echo -n "macvlan$nicID"
+}
+
 # Setup macvtap device to connect later the VM and setup a new macvlan devide
 # to connect the host machine to the network
 configureNetworks () {
@@ -144,8 +159,9 @@ configureNetworks () {
     fi
 
     local CIDR=$(ip address show dev $iface | awk "/inet $IP/ { print \$2 }" | cut -f2 -d/)
-    local vtapdev="kvm-macvtap$i"
-    local vlandev="kvm-macvlan$i"
+
+    #generate random device names for new network devices
+    read vtapdev vlandev < <(generateDeviceNames)
 
     # macvtap device creation for the VM
     ip link add link $iface name $vtapdev type macvtap mode bridge
