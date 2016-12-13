@@ -178,7 +178,15 @@ configureNetworks () {
     
     set -xe
     # macvtap device creation for the VM
-    ip link add link $iface name $vtapdev type macvtap mode bridge
+
+    # try to repeat this macvtap device creation
+    local i=1
+    until $(ip link add link $iface name $vtapdev type macvtap mode bridge); do
+      echo -n .
+      let 'i++'
+      sleep 1
+    done
+    echo "DEBUG: device creation succeed after $i attemps"
     ip link set $vtapdev address "$MAC"
     ip link set $vtapdev up
 
