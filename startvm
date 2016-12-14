@@ -164,6 +164,8 @@ configureNetworks () {
     #generate random device names for new network devices
     read vtapdev vlandev < <(generateDeviceNames)
 
+    local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
+
     # use container MAC address ($MAC) for tap device
     # and generate a new one for the local interface
     ip link set $iface down
@@ -171,20 +173,28 @@ configureNetworks () {
     ip link set $iface up
 
     # macvtap device creation for the VM
-    ip link add link $iface name $vtapdev type macvtap mode bridge
+
+    # repeat macvtap device creation until it succeeds (needed for Kubernetes compatibility)
+    until $(ip link add link $iface name $vtapdev type macvtap mode bridge); do
+      sleep 1
+    done
     ip link set $vtapdev address "$MAC"
     ip link set $vtapdev up
 
     # create a macvlan device for the host
     ip link add link $iface name $vlandev type macvlan mode bridge
     ip link set $vlandev up
-
+    set +xe
     # get a new IP for the guest machine in a broader network broadcast domain
     if ! [[ -z $IP ]]; then
       newIP=($(getNonConflictingIP $IP $CIDR))
       ip address del "$IP/$CIDR" dev "$iface"
       ip address add "${newIP[0]}/${newIP[1]}" dev "$vlandev"
     fi
+
+    local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
+    : ${macv_interfaces:='*NONE*'}
+    echo "DEBUG: vlan/vtap devices: ${macv_interfaces[@]}"
 
     # create dev file (there is no udev in container. need to be done manually
     IFS=: read major minor < <(cat /sys/devices/virtual/net/$vtapdev/tap*/dev)
