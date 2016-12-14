@@ -163,30 +163,21 @@ configureNetworks () {
 
     #generate random device names for new network devices
     read vtapdev vlandev < <(generateDeviceNames)
-    
-    echo "DEBUG: New device names generated: $vtapdev $vlandev"
-    local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
-    : ${macv_interfaces:='*NONE*'}
-    echo "DEBUG: vlan/vtap devices: ${macv_interfaces[@]}"
 
-    
+    local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
+
     # use container MAC address ($MAC) for tap device
     # and generate a new one for the local interface
     ip link set $iface down
     ip link set $iface address $(genMAC)
     ip link set $iface up
-    
-    set -xe
+
     # macvtap device creation for the VM
 
-    # try to repeat this macvtap device creation
-    local i=1
+    # repeat macvtap device creation until it succeeds (needed for Kubernetes compatibility)
     until $(ip link add link $iface name $vtapdev type macvtap mode bridge); do
-      echo -n .
-      let 'i++'
       sleep 1
     done
-    echo "DEBUG: device creation succeed after $i attemps"
     ip link set $vtapdev address "$MAC"
     ip link set $vtapdev up
 
