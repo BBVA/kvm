@@ -7,6 +7,7 @@
 
 # If no arguments, the VM will lauch with 4 cores and 1GB of memory
 
+: ${DEBUG:=0}
 : ${LAUNCHER:='/usr/libexec/qemu-kvm'}
 : ${DNSMASQ_CONF_DIR:='/etc/dnsmasq.d'}
 : ${DNSMASQ:='/usr/sbin/dnsmasq'}
@@ -28,11 +29,24 @@
 
 : ${KVM_CPU_OPTS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
 
-# set -x
+log () {
+  case "$1" in
+    INFO | WARNING | ERROR )
+      echo "$1: ${@:2}"
+      ;;
+    DEBUG)
+      [[ $DEBUG -eq 1 ]] && echo "$1: ${@:2}"
+      ;;
+    *)
+      echo "-- $@"
+      ;;
+  esac
+}
 
 # ContainsElement: checks if first parameter is among the array given as second parameter
 # returns 0 if the element is found in the list and 1 if not
 # usage: containsElement $item $list
+
 containsElement () {
   local e
   for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
@@ -104,7 +118,7 @@ getNonConflictingIP () {
     echo $newIP $newCIDR
 }
 
-# generates new names for macvlan
+# generates new names for macvlan devices
 generateDeviceNames () {
   local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
   local nicID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1)
@@ -150,10 +164,10 @@ configureNetworks () {
         local configured_ip=$(atoi $configured_ip)
         if [[ $configured_ip -gt $given_network && $configured_ip -lt $given_broadcast ]]; then
           IP=$(itoa $configured_ip)
-          echo "INFO: SELECTED_NETWORK ($SELECTED_NETWORK) found with ip $IP in $iface interface."
+          log "INFO" "SELECTED_NETWORK ($SELECTED_NETWORK) found with ip $IP in $iface interface."
         fi
       done
-      [[ -z "$IP" ]] && echo "WARNING: SELECTED_NETWORK ($SELECTED_NETWORK) not found in $iface interface."
+      [[ -z "$IP" ]] && log "WARNING" "SELECTED_NETWORK ($SELECTED_NETWORK) not found in $iface interface."
     else
       IP=${IPs[0]}
     fi
@@ -193,7 +207,7 @@ configureNetworks () {
 
     local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
     : ${macv_interfaces:='*NONE*'}
-    echo "DEBUG: vlan/vtap devices: ${macv_interfaces[@]}"
+    log "DEBUG" "vlan/vtap devices: ${macv_interfaces[@]}"
 
     # create dev file (there is no udev in container. need to be done manually
     IFS=: read major minor < <(cat /sys/devices/virtual/net/$vtapdev/tap*/dev)
@@ -201,12 +215,10 @@ configureNetworks () {
 
     # dnsmasq configuration:
     if [[ "$ENABLE_DHCP" == 1 ]]; then
-      echo "INFO: DHCP configured to serve IP $IP/$CIDR via $vtapdev (attached to $iface)"
-      DNSMASQ_OPTS="$DNSMASQ_OPTS                       \
-        --dhcp-range=$IP,$IP                            \
-        --dhcp-host=$MAC,,$IP,$(hostname -s),infinite   \
-        --dhcp-option=option:netmask,$(cidr2mask $CIDR) \
-        "
+      log "INFO" "DHCP configured to serve IP $IP/$CIDR via $vtapdev (attached to container's $iface)"
+      DNSMASQ_OPTS="$DNSMASQ_OPTS --dhcp-range=$IP,$IP --dhcp-host=$MAC,,$IP,$(hostname -s),infinite --dhcp-option=option:netmask,$(cidr2mask $CIDR)"
+    else
+      log "INFO" "No DHCP enabled. The VM won't get the container IP(s)"
     fi
 
     # kvm configuration:
@@ -220,15 +232,16 @@ configureNetworks () {
 
 #enable KVM support onl if the host supports it
 if [[ $(grep -e vmx -e svm /proc/cpuinfo) ]]; then
-  echo "INFO: KVM acceleration enabled"
+  log "INFO" "KVM acceleration enabled"
   KVM_OPTS="$KVM_OPTS -enable-kvm -machine accel=kvm,usb=off "
 else
-  echo "INFO: KVM acceleration disabled"
+  log "INFO" "KVM acceleration disabled"
   KVM_OPTS="$KVM_OPTS -machine usb=off "
 fi
 
 # Debugging mode
 if [ "$1" = "bash" ]; then
+  export DEBUG=1
   export LAUNCHER=$LAUNCHER
   export QEMU_CONF_DIR=$QEMU_CONF_DIR
   export DNSMASQ_CONF_DIR=$DNSMASQ_CONF_DIR
@@ -241,22 +254,28 @@ if [ "$1" = "bash" ]; then
   exec bash
 fi
 
+case "$DEBUG" in
+  [Yy1]* ) DEBUG=1;;
+  [Nn0]* ) DEBUG=0;;
+  *      ) log "ERROR" "DEBUG incorrect or undefined. It must be one of [Yy1Nn0]"; exit 1;;
+esac
+
 case "$AUTO_ATTACH" in
   [Yy1]* ) AUTO_ATTACH=1;;
   [Nn0]* ) AUTO_ATTACH=0;;
-  *      ) echo "ERROR: AUTO_ATTACH incorrect or undefined. It must be one of YyNn"; exit 1;;
+  *      ) log "ERROR" "AUTO_ATTACH incorrect or undefined. It must be one of [Yy1Nn0]"; exit 1;;
 esac
 
 case "$ENABLE_DHCP" in
   [Yy1]* ) ENABLE_DHCP=1;;
   [Nn0]* ) ENABLE_DHCP=0;;
-  *      ) echo "ERROR: ENABLE_DHCP incorrect or undefined. It must be one of [YyNn]"; exit 1;;
+  *      ) log "ERROR" "ENABLE_DHCP incorrect or undefined. It must be one of [Yy1Nn0]"; exit 1;;
 esac
 
 case "$DISABLE_VGA" in
   [Yy1]* ) DISABLE_VGA=1;;
   [Nn0]* ) DISABLE_VGA=0;;
-  *      ) echo "ERROR: DISABLE_VGA incorrect or undefined. It must be one of [YyNn]"; exit 1;;
+  *      ) log "ERROR" "DISABLE_VGA incorrect or undefined. It must be one of [Yy1Nn0]"; exit 1;;
 esac
 
 if [[ "$DISABLE_VGA" -eq 0 ]]; then
@@ -301,9 +320,11 @@ if [[ "$ENABLE_DHCP" == 1 ]]; then
     --dhcp-option=option:domain-name,$domainname      \
     "
   [[ -z $(hostname -d) ]] || DNSMASQ_OPTS="$DNSMASQ_OPTS --dhcp-option=option:domain-name,$(hostname -d)"
-  echo "INFO: Lauching dnsmasq $DNSMASQ_OPTS"
+  log "INFO" "Lauching dnsmasq"
+  log "DEBUG" "dnsmasq options: $DNSMASQ_OPTS"
   $DNSMASQ $DNSMASQ_OPTS
 fi
 
-echo "INFO: Launching $LAUNCHER $KVM_BLK_OPTS $KVM_OPTS $KVM_VIDEO_OPTS $KVM_CPU_OPTS $KVM_ARGS $@ $KVM_NET_OPTS"
+log "INFO" "Launching qemu-kvm"
+log "DEBUG" "Launching $LAUNCHER $KVM_BLK_OPTS $KVM_OPTS $KVM_VIDEO_OPTS $KVM_CPU_OPTS $KVM_ARGS $@ $KVM_NET_OPTS"
 eval exec $LAUNCHER $KVM_BLK_OPTS $KVM_OPTS $KVM_VIDEO_OPTS $KVM_CPU_OPTS "$@" $KVM_NET_OPTS

@@ -104,6 +104,8 @@ It's specially useful the following options when debugging dnsmasq behaviour:
 ```
 --log-facility=/var/log/dnsmasq.log --log-dhcp
 ```
+### DEBUG
+When this env varable is set to `yes`, the verbosity is increased.
 
 ## Notes / Troubleshooting
 
