@@ -7,10 +7,12 @@
 
 # If no arguments, the VM will lauch with 4 cores and 1GB of memory
 
-: ${DEBUG:=0}
+: ${DEBUG:='N'}
+: ${USE_NET_BRIDGES:='N'}
 : ${LAUNCHER:='/usr/libexec/qemu-kvm'}
 : ${DNSMASQ_CONF_DIR:='/etc/dnsmasq.d'}
 : ${DNSMASQ:='/usr/sbin/dnsmasq'}
+: ${QEMU_CONF_DIR:='/etc/qemu-kvm'}
 : ${ENABLE_DHCP:='Y'}
 : ${DISABLE_VGA:='N'}
 
@@ -118,17 +120,96 @@ getNonConflictingIP () {
     echo $newIP $newCIDR
 }
 
-# generates new names for macvlan devices
-generateDeviceNames () {
-  local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
-  local nicID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1)
+# generates unused, random names for macvlan or bridge devices
+# usage: generateNetDevNames DEVICETYPE
+#   DEVICETYPE must be either 'macvlan' or 'bridge'
+# returns:
+#   - bridgeXXXXXX if DEVICETYPE is 'bridge'
+#   - macvlanXXXXXX, macvtapXXXXXX if DEVICETYPE is 'macvlan'
+generateNetdevNames () {
+  devicetype=$1
+
+  local netdevinterfaces=($(ip link show | awk "/$devicetype/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
+  local randomID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1)
 
   # check if the device already exists and regenerate the name if so
-  while containsElement "macvtap$nicID" "${macv_interfaces[@]}"; do nicID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1); done
+  while containsElement "$devicetype$randomID" "${netdevinterfaces[@]}"; do randomID=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 6 | head -n 1); done
 
-  echo -n "macvtap$nicID "
-  echo -n "macvlan$nicID"
+  echo -n "$devicetype$randomID"
+  if [[ "$devicetype" == "macvlan" ]]; then echo -n " macvtap$randomID "; fi
 }
+
+# generates a new bridge, gets the IP form the given interface (IFNAME) and
+# connects IFNAME to it
+# usage: setBridge IFNAME
+setBridge () {
+  local iface="$1"
+
+  read bridge < <(generateNetdevNames "bridge")
+
+  brctl addbr "$bridge"
+  brctl addif "$bridge" "$iface"
+
+  # get a new IP for the guest machine in a broader network broadcast domain
+  if ! [[ -z $IP ]]; then
+    newIP=($(getNonConflictingIP $IP $CIDR))
+    ip address del "$IP/$CIDR" dev "$iface"
+    ip address add "${newIP[0]}/${newIP[1]}" dev "$bridge"
+  fi
+
+  ip link set dev "$bridge" up
+  echo $bridge
+}
+
+# generates macvlan and macvtap devices. Macvlan device connects to IFNAME and
+# gets its original MAC address.
+# usage: setMacvlan IFNAME
+setMacvlan () {
+  local iface="$1"
+  #generate random device names for new network devices
+  read vlandev vtapdev < <(generateNetdevNames "macvlan")
+  # use container MAC address ($MAC) for tap device
+  # and generate a new one for the local interface
+  ip link set $iface down
+  ip link set $iface address $(genMAC)
+  ip link set $iface up
+
+  # macvtap device creation for the VM
+  # repeat macvtap device creation until it succeeds (needed for Kubernetes compatibility)
+  until $(ip link add link $iface name $vtapdev type macvtap mode bridge); do
+    sleep 1
+  done
+
+  ip link set $vtapdev address "$MAC"
+  ip link set $vtapdev up
+
+  # create a macvlan device for the host
+  ip link add link $iface name $vlandev type macvlan mode bridge
+  ip link set $vlandev up
+
+  # get a new IP for the guest machine in a broader network broadcast domain
+  if ! [[ -z $IP ]]; then
+    newIP=($(getNonConflictingIP $IP $CIDR))
+    ip address del "$IP/$CIDR" dev "$iface"
+    ip address add "${newIP[0]}/${newIP[1]}" dev "$vlandev"
+  fi
+
+  # create dev file (there is no udev in container: need to be done manually)
+  IFS=: read major minor < <(cat /sys/devices/virtual/net/$vtapdev/tap*/dev)
+  mknod "/dev/$vtapdev" c $major $minor
+  echo $vlandev $vtapdev
+}
+
+setupDhcp () {
+  # dnsmasq configuration:
+  if [[ "$ENABLE_DHCP" == 1 ]]; then
+    log "INFO" "DHCP configured to serve IP $IP/$CIDR via ${bridgename[0]} (attached to container's $iface)"
+    DNSMASQ_OPTS="$DNSMASQ_OPTS --dhcp-range=$IP,$IP --dhcp-host=$MAC,,$IP,$(hostname -s),infinite --dhcp-option=option:netmask,$(cidr2mask $CIDR)"
+  else
+    log "INFO" "No DHCP enabled. The VM won't get the container IP(s)"
+  fi
+}
+
 
 # Setup macvtap device to connect later the VM and setup a new macvlan devide
 # to connect the host machine to the network
@@ -174,57 +255,25 @@ configureNetworks () {
 
     local CIDR=$(ip address show dev $iface | awk "/inet $IP/ { print \$2 }" | cut -f2 -d/)
 
-    #generate random device names for new network devices
-    read vtapdev vlandev < <(generateDeviceNames)
-
-    local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
-
-    # use container MAC address ($MAC) for tap device
-    # and generate a new one for the local interface
-    ip link set $iface down
-    ip link set $iface address $(genMAC)
-    ip link set $iface up
-
-    # macvtap device creation for the VM
-
-    # repeat macvtap device creation until it succeeds (needed for Kubernetes compatibility)
-    until $(ip link add link $iface name $vtapdev type macvtap mode bridge); do
-      sleep 1
-    done
-    ip link set $vtapdev address "$MAC"
-    ip link set $vtapdev up
-
-    # create a macvlan device for the host
-    ip link add link $iface name $vlandev type macvlan mode bridge
-    ip link set $vlandev up
-    set +xe
-    # get a new IP for the guest machine in a broader network broadcast domain
-    if ! [[ -z $IP ]]; then
-      newIP=($(getNonConflictingIP $IP $CIDR))
-      ip address del "$IP/$CIDR" dev "$iface"
-      ip address add "${newIP[0]}/${newIP[1]}" dev "$vlandev"
-    fi
-
-    local macv_interfaces=($(ip link show | awk "/macv/ { print \$2 }" | cut -d '@' -f 1 | tr -d :))
-    : ${macv_interfaces:='*NONE*'}
-    log "DEBUG" "vlan/vtap devices: ${macv_interfaces[@]}"
-
-    # create dev file (there is no udev in container. need to be done manually
-    IFS=: read major minor < <(cat /sys/devices/virtual/net/$vtapdev/tap*/dev)
-    mknod "/dev/$vtapdev" c $major $minor
-
-    # dnsmasq configuration:
-    if [[ "$ENABLE_DHCP" == 1 ]]; then
-      log "INFO" "DHCP configured to serve IP $IP/$CIDR via $vtapdev (attached to container's $iface)"
-      DNSMASQ_OPTS="$DNSMASQ_OPTS --dhcp-range=$IP,$IP --dhcp-host=$MAC,,$IP,$(hostname -s),infinite --dhcp-option=option:netmask,$(cidr2mask $CIDR)"
+    # setup the bridge or macvtap (default) devices for bridging the VM and the container
+    if [[ $USE_NET_BRIDGES == 1 ]]; then
+      local bridgename=$(setBridge $iface)
+      setupDhcp
+      # kvm configuration:
+      echo allow $bridgename >> $QEMU_CONF_DIR/bridge.conf
+      KVM_NET_OPTS="$KVM_NET_OPTS -netdev bridge,br=$bridgename,id=net$i"
     else
-      log "INFO" "No DHCP enabled. The VM won't get the container IP(s)"
+      local bridgename=($(setMacvlan $iface))
+      log "DEBUG" "bridgename = ${bridgename[@]}"
+      setupDhcp
+      # kvm configuration:
+      let fd=$i+3
+      KVM_NET_OPTS="$KVM_NET_OPTS -netdev tap,id=net$i,vhost=on,fd=$fd ${fd}<>/dev/${bridgename[1]}"
     fi
 
-    # kvm configuration:
-    let fd=$i+3
-    KVM_NET_OPTS="$KVM_NET_OPTS -device virtio-net-pci,netdev=net$i,mac=$MAC -netdev tap,id=net$i,vhost=on,fd=$fd ${fd}<>/dev/${vtapdev}"
+    KVM_NET_OPTS=" -device virtio-net-pci,netdev=net$i,mac=$MAC $KVM_NET_OPTS"
     let i++
+
   done
 }
 
@@ -277,6 +326,13 @@ case "$DISABLE_VGA" in
   [Nn0]* ) DISABLE_VGA=0;;
   *      ) log "ERROR" "DISABLE_VGA incorrect or undefined. It must be one of [Yy1Nn0]"; exit 1;;
 esac
+
+case "$USE_NET_BRIDGES" in
+  [Yy1]* ) USE_NET_BRIDGES=1;;
+  [Nn0]* ) USE_NET_BRIDGES=0;;
+  *      ) log "ERROR" "USE_NET_BRIDGES incorrect or undefined. It must be one of [Yy1Nn0]"; exit 1;;
+esac
+
 
 if [[ "$DISABLE_VGA" -eq 0 ]]; then
   : ${KVM_VIDEO_OPTS:="-vga qxl -display none"}
