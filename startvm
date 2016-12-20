@@ -145,6 +145,12 @@ generateNetdevNames () {
 setBridge () {
   local iface="$1"
 
+  # use container MAC address ($MAC) for tap device
+  # and generate a new one for the local interface
+  ip link set $iface down
+  ip link set $iface address $(genMAC)
+  ip link set $iface up
+
   read bridge < <(generateNetdevNames "bridge")
 
   brctl addbr "$bridge"
