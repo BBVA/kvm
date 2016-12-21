@@ -107,6 +107,10 @@ It's specially useful the following options when debugging dnsmasq behaviour:
 ### DEBUG
 When this env varable is set to `yes`, the verbosity is increased.
 
+### USE_NET_BRIDGES
+This container uses macvlan devices to setup network connectivity. If an old kernel or limited host is used, it is possible to use linux bridge by setting the variable `USE_NET_BRIDGES` to `yes`.
+
+
 ## Notes / Troubleshooting
 
 * Privileged mode (`--privileged`) is needed in order for KVM to access to macvtap devices [see issue #3](https://github.com/BBVA/kvm/issues/3) for further information.

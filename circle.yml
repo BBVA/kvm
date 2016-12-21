@@ -10,7 +10,7 @@ dependencies:
 test:
   override:
     - curl -o image.img http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
-    - docker run --name kvm -e AUTO_ATTACH=yes -d --privileged -v $PWD/image.img:/image/image bbvainnotech/kvm; sleep 90
+    - docker run --name kvm -e USE_NET_BRIDGES=yes -e AUTO_ATTACH=yes -d --privileged -v $PWD/image.img:/image/image bbvainnotech/kvm; sleep 90
     - export containerIP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kvm)
     - (TIMEOUT=100; i=0; until nc -w 1 -z 172.17.0.2 22; do let 'i++' ; [[ $i -gt $TIMEOUT ]] && exit 1; echo -n . ; sleep 1; done)
 
