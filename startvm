@@ -147,9 +147,6 @@ setBridge () {
 
   # use container MAC address ($MAC) for tap device
   # and generate a new one for the local interface
-  ip link set $iface down
-  ip link set $iface address $(genMAC)
-  ip link set $iface up
 
   read bridge < <(generateNetdevNames "bridge")
 
@@ -174,11 +171,6 @@ setMacvlan () {
   local iface="$1"
   #generate random device names for new network devices
   read vlandev vtapdev < <(generateNetdevNames "macvlan")
-  # use container MAC address ($MAC) for tap device
-  # and generate a new one for the local interface
-  ip link set $iface down
-  ip link set $iface address $(genMAC)
-  ip link set $iface up
 
   # macvtap device creation for the VM
   # repeat macvtap device creation until it succeeds (needed for Kubernetes compatibility)
@@ -216,7 +208,6 @@ setupDhcp () {
   fi
 }
 
-
 # Setup macvtap device to connect later the VM and setup a new macvlan devide
 # to connect the host machine to the network
 configureNetworks () {
@@ -227,6 +218,11 @@ configureNetworks () {
 
   for iface in "${local_ifaces[@]}"; do
 
+    IPs=$(ip address show dev $iface | grep inet | awk '/inet / { print $2 }' | cut -f1 -d/)
+    IPs=($IPs)
+    MAC=$(ip link show $iface | awk '/ether/ { print $2 }')
+    log "DEBUG" "Container original MAC address: $MAC"
+
     # If the container has more than one IP configured in a given interface,
     # the user can select which one to use.
     # The SELECTED_NETWORK environment variable is used to select that IP.
@@ -234,10 +230,6 @@ configureNetworks () {
     #
     # If this env variable is not set, the IP to be given to the VM is
     # the first in the list for that interface (default behaviour).
-
-    IPs=$(ip address show dev $iface | grep inet | awk '/inet / { print $2 }' | cut -f1 -d/)
-    IPs=($IPs)
-    MAC=$(ip link show $iface | awk '/ether/ { print $2 }')
 
     if ! [[ -z "$SELECTED_NETWORK" ]]; then
       local given_ip given_mask
@@ -261,7 +253,14 @@ configureNetworks () {
 
     local CIDR=$(ip address show dev $iface | awk "/inet $IP/ { print \$2 }" | cut -f2 -d/)
 
-    # setup the bridge or macvtap (default) devices for bridging the VM and the container
+    # use container MAC address ($MAC) for tap device
+    # and generate a new one for the local interface
+    ip link set $iface down
+    ip link set $iface address $(genMAC)
+    ip link set $iface up
+
+    # setup the bridge or macvtap (default) devices for bridging the VM and the
+    # container
     if [[ $USE_NET_BRIDGES == 1 ]]; then
       local bridgename=$(setBridge $iface)
       setupDhcp
