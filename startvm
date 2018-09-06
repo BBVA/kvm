@@ -7,6 +7,7 @@
 
 # If no arguments, the VM will lauch with 4 cores and 1GB of memory
 
+
 : ${DEBUG:='N'}
 : ${USE_NET_BRIDGES:='N'}
 : ${LAUNCHER:='/usr/libexec/qemu-kvm'}
@@ -29,7 +30,7 @@
   "}
   # -serial telnet::4555,server,nowait \
 
-: ${KVM_CPU_OPTS:="-m 1024 -smp 4,sockets=4,cores=1,threads=1"}
+: ${KVM_CPU_OPTS:="-m $MEM -smp $CPU_SMP,sockets=$CPU_SOCKETS,cores=$CPU_CORES,threads=$CPU_THREADS"}
 
 log () {
   case "$1" in
@@ -322,7 +323,7 @@ esac
 
 
 if [[ "$DISABLE_VGA" -eq 0 ]]; then
-  : ${KVM_VIDEO_OPTS:="-vga qxl -display none"}
+  : ${KVM_VIDEO_OPTS:="-vga qxl -display $DISPLAY"}
 else
   : ${KVM_VIDEO_OPTS:="-nographic"}
 fi
