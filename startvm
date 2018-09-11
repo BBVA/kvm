@@ -21,6 +21,8 @@
 
 : ${KVM_OPTS:="\
   -nodefaults \
+  -vnc 0.0.0.0:0 \
+  -usbdevice tablet \
   -device virtio-balloon-pci,id=balloon0 \
   -realtime mlock=off \
   -msg timestamp=on \
