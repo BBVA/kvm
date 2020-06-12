@@ -78,7 +78,7 @@ $ docker run                                    \
       --privileged                              \
       -v /path_to/image_file.qcow2:/image/image \
       -e AUTO_ATTACH=yes                        \
-      bbvainnotech/kvm:latest
+      bbvainnotech/kvm:latest bash
 ```
 
 ## Environment variables
