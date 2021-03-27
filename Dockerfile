@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM centos:7
 MAINTAINER BBVA Innovation <eurocloud-oneteam.group@bbva.com>
 ENV container docker
 
